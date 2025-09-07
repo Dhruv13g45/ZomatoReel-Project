@@ -1,0 +1,143 @@
+import { FoodPartner } from "../models/foodPartner.models"
+import { User } from "../models/user.models"
+import encryptPassword from "../utils/encryptPassword.js"
+import checkPassword from "../utils/checkPassword.js"
+import generateRefreshAccessToken from "../utils/generateRefreshAccessToken.js"
+import { ApiError } from "../utils/ApiError.js"
+import { ApiSuccess } from "../utils/ApiSuccess.js"
+
+const registerPartner = async(req,res) =>{
+
+    const {fullName, email, password, role, restaurentName, address} = req.body
+
+    if (!fullName && !email && !password && !role && !restaurentName && address){
+        throw new ApiError(401, "All fields are compulsory !!")
+    }
+
+    const existingUser = await User.findOne({email: email})
+
+    if (existingUser){
+        throw new ApiError(403, "Partner with specififed email already exists !!")
+    }
+
+
+    const hashedPassword = await encryptPassword(password)
+
+
+    const createdUser = await User.create({
+        fullName,
+        email,
+        password:hashedPassword,
+        role,
+    })
+
+    if (!createdUser){
+        throw new ApiError(500, "Something went wrong while creating a user !!")
+    }
+    
+    const createdFoodPartner = await FoodPartner.create({
+        user: createdUser?._id,
+        foodVideos: [],
+        restaurentName,
+        address
+    })
+
+    if (!createdFoodPartner){
+        throw new ApiError(500, "Something went wrong while creating a partner !!")
+    }
+
+
+
+    return res.status(200)
+    .json(
+        new ApiSuccess(200, "User created Successfully !!", {createdFoodPartner})
+    )
+
+}
+
+
+const loginFoodPartner = async(req, res)=>{
+    const {email, password} = req.body
+
+    if (!email && !password){
+        throw new ApiError(401, "All fields are compulsory !!")
+    }
+
+    const existingUser = await User.findOne({email: email})
+
+    if (!existingUser){
+        throw new ApiError(404, "User not found")
+    }
+
+    const isPasswordCorrect = await checkPassword(existingUser, password)
+    
+    if (!isPasswordCorrect){
+        throw new ApiError(301, "Password entered was incorrect !!")
+    }
+
+    const {accessToken, refreshToken} = generateRefreshAccessToken(existingUser)
+
+    const options = {
+        httpOnly: true,
+        secure: false,
+    }
+
+    existingUser.accessToken = accessToken
+    existingUser.refreshToken = refreshToken
+
+    await existingUser.save()
+
+    const foodPartner = await FoodPartner.findOne({user:existingUser?._id})
+    
+    res.cookie("refreshToken", refreshToken, options)
+    req.user = foodPartner
+
+    return res.status(200)
+    .json(
+        new ApiSuccess(200, "Partner loggedIn successfully !!", {accessToken, foodPartner})
+    )
+
+}
+
+
+const logoutFoodPartner = async(req,res)=>{
+    const foodPartner = req.user
+
+
+    await User.findByIdAndUpdate(foodPartner.user, {refreshToken:null})
+
+
+    res.clearCookie("refreshToken")
+
+    return res.status(200)
+    .json(
+        new ApiSuccess(200, "Food Partner logged out successfully !!", {foodPartner})
+    )
+}
+
+const viewFoodPartnerProfile = async(req,res) =>{
+    const currentUser = req.user
+
+    if (!currentUser){
+        throw new ApiError(500, "Error while fetching partner details !!")
+    }
+
+    return res.status(200)
+    .json(200, "Fetched partner deatils successfully !!", {currentUser})
+}
+
+const createFoodVideo = async(req,res)=>{
+    const {caption} = req.body
+    const videoFile = req.files?.foodVideo?.path
+}
+
+const deleteFoodVideo = async(req,res) =>{}
+
+export {
+    registerPartner,
+    loginFoodPartner,
+    logoutFoodPartner,
+    viewFoodPartnerProfile,
+    createFoodVideo,
+    deleteFoodVideo,
+}
