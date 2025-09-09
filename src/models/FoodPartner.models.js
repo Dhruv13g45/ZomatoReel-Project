@@ -6,15 +6,23 @@ const foodPartnerSchema = new Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required:true,
     },
 
     foodVideos: {
         type: [{
             videoUrl: {
-                type: String
+                type: String,
+                required:true
             },
-            caption: String,
-            required: true,
+            videoId:{
+                type:String,
+                required:true
+            },
+            caption: {
+                type: String,
+                required:true
+            },
         }]
     },
 
@@ -26,7 +34,7 @@ const foodPartnerSchema = new Schema({
     address:{
         type:String,
         required:true,
-    }
+    },
 },
     {
         timestamps: true

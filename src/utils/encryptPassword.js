@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt"
-import { ApiError } from "./ApiError"
+import { ApiError } from "./ApiError.js"
 
 const encryptPassword = async(password)=>{
 

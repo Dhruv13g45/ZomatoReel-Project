@@ -7,7 +7,6 @@ import { generateRefreshAccessToken } from "../utils/generateRefreshAccessToken.
 
 
 const registerUser = async(req,res) =>{
-
     const {fullName, email, password, role} = req.body
 
     if (!fullName && !email && !password && !role){
@@ -39,7 +38,7 @@ const registerUser = async(req,res) =>{
 
     return res.status(200)
     .json(
-        new ApiSuccess(200, "User created Successfully !!", {createdUser})
+        new ApiSuccess(200, "User created Successfully !!", {userId: createdUser._id,fullName:createdUser.fullName})
     )
 
 }
@@ -76,7 +75,7 @@ const loginUser = async(req, res)=>{
 
     existingUser.save()
 
-    res.cookie("refreshToken", refreshToken, options)
+    res.cookie("accessToken", accessToken, options)
     req.user = existingUser
 
     return res.status(200)

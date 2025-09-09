@@ -1,14 +1,17 @@
 import { Router } from "express";
-import { createFoodVideo, deleteFoodVideo, loginFoodPartner, logoutFoodPartner, registerPartner } from "../controllers/foodPartner.controller";
+import { createFoodVideo, deleteFoodVideo, loginFoodPartner, logoutFoodPartner, registerPartner, viewFoodPartnerProfile } from "../controllers/foodPartner.controller.js";
+
+import {upload} from "../middlewares/multer.middleware.js"
+import {verifyJWT} from "../middlewares/auth.middleware.js"
 
 const router = Router()
 
-router.post("/register-partner",registerPartner)
-router.post("/login-partner",loginFoodPartner)
-router.post("/logout-partner",logoutFoodPartner)
-router.get("/view-partner-profile",viewFoodPartnerProfile)
-router.post("/create-food-reel",createFoodVideo)
-router.delete("/delete-food-reel",deleteFoodVideo)
+router.post("/register-partner",upload.none(),registerPartner)
+router.post("/login-partner",upload.none(),loginFoodPartner)
+router.post("/logout-partner",verifyJWT,upload.none(),logoutFoodPartner)
+router.post("/view-partner-profile",verifyJWT,upload.none(),viewFoodPartnerProfile)
+router.post("/create-food-reel",verifyJWT,upload.single("foodVideo"),createFoodVideo)
+router.delete("/delete-food-reel",verifyJWT,upload.none(),deleteFoodVideo)
 
 
 

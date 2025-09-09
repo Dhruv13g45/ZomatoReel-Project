@@ -1,10 +1,12 @@
-import { FoodPartner } from "../models/foodPartner.models"
-import { User } from "../models/user.models"
-import encryptPassword from "../utils/encryptPassword.js"
-import checkPassword from "../utils/checkPassword.js"
-import generateRefreshAccessToken from "../utils/generateRefreshAccessToken.js"
+import { FoodPartner } from "../models/foodPartner.models.js"
+import { User } from "../models/user.models.js"
+import {encryptPassword} from "../utils/encryptPassword.js"
+import {checkPassword} from "../utils/checkPassword.js"
+import { generateRefreshAccessToken } from "../utils/generateRefreshAccessToken.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiSuccess } from "../utils/ApiSuccess.js"
+import {uploadToCloudinary} from "../utils/cloudinary.js"
+import { v4 as uuidv4 } from "uuid"
 
 const registerPartner = async(req,res) =>{
 
@@ -89,12 +91,12 @@ const loginFoodPartner = async(req, res)=>{
 
     const foodPartner = await FoodPartner.findOne({user:existingUser?._id})
     
-    res.cookie("refreshToken", refreshToken, options)
+    res.cookie("accessToken", accessToken, options)
     req.user = foodPartner
 
     return res.status(200)
     .json(
-        new ApiSuccess(200, "Partner loggedIn successfully !!", {accessToken, foodPartner})
+        new ApiSuccess(200, "Partner loggedIn successfully !!", {foodPartner})
     )
 
 }
@@ -103,11 +105,14 @@ const loginFoodPartner = async(req, res)=>{
 const logoutFoodPartner = async(req,res)=>{
     const foodPartner = req.user
 
+    try {
+        await User.findByIdAndUpdate(foodPartner.user, {refreshToken:null})
+        res.clearCookie("accessToken")
+    } catch (error) {
+        console.log("Unable to logout the food partner")
+    }
 
-    await User.findByIdAndUpdate(foodPartner.user, {refreshToken:null})
 
-
-    res.clearCookie("refreshToken")
 
     return res.status(200)
     .json(
@@ -127,11 +132,57 @@ const viewFoodPartnerProfile = async(req,res) =>{
 }
 
 const createFoodVideo = async(req,res)=>{
-    const {caption} = req.body
-    const videoFile = req.files?.foodVideo?.path
+    const {caption, title} = req.body
+    const videoFileLocalPath = req.files?.foodVideos[0]?.path
+
+    if(!videoFileLocalPath && !caption && !title){
+        throw new ApiError(401, "All fields are required !!")
+    }
+
+    const videoFileUrl = await uploadToCloudinary(videoFileLocalPath)
+
+    if(!videoFileUrl){
+        throw new ApiError(500, "Failed to get the public Url of the file !!")
+    }
+
+
+    const currentUser = req.user
+
+    const customId = uuidv4()
+
+    await currentUser.foodVideos.push({
+        videoUrl:videoFileUrl,
+        videoId:customId,
+        caption,
+    })
+
+    await currentUser.save()
+    console.log(currentUser)
+
+    return res.status(200)
+    .json(200, "Video file has been uploaded successfully !!", {currentUser})
+
 }
 
-const deleteFoodVideo = async(req,res) =>{}
+const deleteFoodVideo = async(req,res) =>{
+    const currentUser = req.user
+    const videoId = req.params
+
+    if (!currentUser){
+        throw new ApiError(404, "Unable to find current user please login")
+    }
+
+    await currentUser.FoodVideos.remove({videoId, videoId})
+
+    await currentUser.save()
+
+    return res.status(200)
+    .json(
+        new ApiSuccess(200, "Video deleted successfully !!", {currentUser})
+    )
+
+
+}
 
 export {
     registerPartner,
