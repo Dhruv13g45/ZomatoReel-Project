@@ -4,7 +4,6 @@ import { User } from "../models/user.models.js"
 
 const verifyJWT = async(req, _, next)=>{
     const authCookie = req.cookies
-    console.log(authCookie)
 
     if(!authCookie) {
         throw new ApiError(401, "Didn't provide the access token !!")
