@@ -133,8 +133,7 @@ const viewFoodPartnerProfile = async (req, res) => {
 
 const createFoodVideo = async (req, res) => {
     const videoFileLocalPath = req.file?.path
-    const body = { ...req.body };  
-console.log("Parsed body:", body);
+    const body = { ...req.body };
 
 const { caption, title } = body;
 
@@ -158,8 +157,6 @@ const { caption, title } = body;
     if (!currentUser.foodVideos) {
         currentUser.foodVideos = [];
     }
-
-    console.log(req.body);
     
 
     currentUser.foodVideos.push({
@@ -189,7 +186,7 @@ const deleteFoodVideo = async (req, res) => {
         throw new ApiError(404, "Unable to find current user please login")
     }
 
-    await currentUser.FoodVideos.remove({ videoId, videoId })
+    await currentUser.FoodVideos.remove({ videoId: videoId })
 
     await currentUser.save()
 
